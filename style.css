@@ -1,34 +1,40 @@
         * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #f5eedc;
-            font-family: 'Mali', cursive, sans-serif;
-        }
-
-        .scroll-container {
-            width: 100vw;
-            height: 100vh;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .game-world {
-            height: 100vh;
-            aspect-ratio: 1920 / 1080;
-            background-image: url('BG_Flower_1920x1080px.png');
-            background-size: cover;
-            background-position: center;
-            position: relative;
-        }
+           box-sizing: border-box;
+           margin: 0;
+           padding: 0;
+       }
+       
+       body, html {
+           width: 100%;
+           height: 100%;
+           overflow: hidden;
+           background-color: #f5eedc;
+           font-family: 'Mali', cursive, sans-serif;
+           /* ใช้ Flexbox จัดให้กล่องเกมอยู่กึ่งกลางจอเสมอ */
+           display: flex;
+           justify-content: center;
+           align-items: center;
+       }
+       
+       .scroll-container {
+           width: 100vw;
+           height: 100vh;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           overflow: hidden;
+       }
+       
+       .game-world {
+           width: min(100vw, calc(100vh * 1920 / 1080));
+           height: min(100vh, calc(100vw * 1080 / 1920));
+           
+           background-image: url('BG_Flower_1920x1080px.png');
+           background-size: cover;
+           background-position: center;
+           position: relative;
+           box-shadow: 0 0 20px rgba(0,0,0,0.1);
+       }
 
         @media (min-aspect-ratio: 1920/1080) {
             .scroll-container {
