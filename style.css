@@ -1,34 +1,34 @@
         * {
-           box-sizing: border-box;
-           margin: 0;
-           padding: 0;
-       }
-       
-       body, html {
-           width: 100%;
-           height: 100%;
-           overflow: hidden;
-           background-color: #f5eedc;
-           font-family: 'Mali', cursive, sans-serif;
-       }
-       
-       .scroll-container {
-           width: 100vw;
-           height: 100vh;
-           overflow: hidden;
-           position: relative;
-       }
-       
-       .game-world {
-           width: 100vw;
-           height: 100vh;
-           
-           background-image: url('BG_Flower_1920x1080px.png');
-           background-size: 100% 100%;
-           background-position: center;
-           background-repeat: no-repeat;
-           position: relative;
-       }
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f5eedc;
+            font-family: 'Mali', cursive, sans-serif;
+        }
+
+        .scroll-container {
+            width: 100vw;
+            height: 100vh;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .game-world {
+            height: 100vh;
+            aspect-ratio: 1920 / 1080;
+            background-image: url('BG_Flower_1920x1080px.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
 
         @media (min-aspect-ratio: 1920/1080) {
             .scroll-container {
