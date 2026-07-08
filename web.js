@@ -25,7 +25,6 @@ function isInsideDirtEllipse(x, y) {
     const dy = y - cy;
     
     const safeRx = rx - PAD_X;
-    
     const safeRy = dy >= 0 ? (ry - PAD_Y_TOP) : (ry - PAD_Y_BOTTOM);
 
     return (dx * dx) / (safeRx * safeRx) + (dy * dy) / (safeRy * safeRy) <= 1;
@@ -48,16 +47,6 @@ function closeCounter() {
     const counterCard = document.getElementById('counterCard');
     if (counterCard) counterCard.classList.add('hidden-counter');
 }
-
-function startPlantingMode() {
-    closeMainMenu();
-    const dirtPatch = document.querySelector('.dirt-patch-zone');
-    if (dirtPatch) dirtPatch.classList.add('planting-active');
-}
-
-window.closeMainMenu = closeMainMenu;
-window.closeCounter = closeCounter;
-window.startPlantingMode = startPlantingMode;
 
 function spawnFlower(xPercent, yPercent) {
     const patchZone = document.querySelector('.dirt-patch-zone');
@@ -156,7 +145,6 @@ function startPlantingMode() {
         mainMenu.classList.add('fade-out');
         setTimeout(() => {
             mainMenu.classList.add('hidden');
-            
             if (plantingIntro) {
                 plantingIntro.classList.remove('card-hidden');
             }
@@ -193,6 +181,66 @@ function backToMainMenu() {
     if (dirtPatch) dirtPatch.classList.remove('planting-active');
 }
 
+function toggleMusic() {
+    const music = document.getElementById('bgMusic');
+    const audioIcon = document.getElementById('audioIcon');
+    
+    if (!music) return;
+
+    music.muted = !music.muted;
+
+    if (music.muted) {
+        audioIcon.src = 'ปิดเสียง.png';
+    } else {
+        audioIcon.src = 'เปิดเสียง.png';
+    }
+
+    if (music.paused) {
+        music.play().catch(e => console.log("รอการโต้ตอบจากผู้ใช้"));
+    }
+}
+
+window.toggleMusic = toggleMusic;
+
+document.addEventListener('click', function() {
+    const music = document.getElementById('bgMusic');
+    const audioBtn = document.querySelector('.audio-toggle-btn');
+    
+    if (music && music.paused) {
+        music.play().then(() => {
+            console.log("เล่นเพลงสำเร็จจากคลิกแรกของผู้ใช้");
+            if (audioBtn) audioBtn.textContent = '🔊';
+        }).catch(err => {
+            console.log("Autoplay โดนบล็อกชั่วคราวโดยระบบความปลอดภัยของเบราว์เซอร์");
+        });
+    }
+}, { once: true });
+
+window.closeMainMenu = closeMainMenu;
+window.closeCounter = closeCounter;
 window.startPlantingMode = startPlantingMode;
 window.closePlantingIntro = closePlantingIntro;
 window.backToMainMenu = backToMainMenu;
+window.toggleMusic = toggleMusic;
+
+function enterGarden() {
+    const welcome = document.getElementById('welcomeScreen');
+    const music = document.getElementById('bgMusic');
+    const audioBtn = document.getElementById('audioBtn');
+
+    if (welcome) {
+        welcome.classList.add('fade-away');
+    }
+
+    if (audioBtn) {
+        audioBtn.classList.remove('hidden');
+    }
+
+    if (music) {
+        music.play().then(() => {
+            console.log("เข้าสวนแล้ว!");
+        }).catch(error => {
+            console.log("เบราว์เซอร์บล็อกเพลง:", error);
+        });
+    }
+}

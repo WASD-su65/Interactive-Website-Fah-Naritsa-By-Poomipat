@@ -12,11 +12,22 @@
     <script src="web.js" defer></script>
 </head>
 <body>
+    <div id="welcomeScreen" class="welcome-overlay-bg">
+        <div class="welcome-content">
+            <img src="Logo เพลง.png" alt="ดอกไม้ - Home" class="welcome-logo">
+            
+            <button class="welcome-start-btn" onclick="enterGarden()">
+                <img src="ปลูกดอกไม้.png" alt="ไปปลูกดอกไม้กันเลย" class="btn-image">
+            </button>
+        </div>
+    </div>
 
-        <div class="scroll-container">
+    <button id="audioBtn" class="audio-toggle-btn hidden" onclick="toggleMusic()">
+        <img id="audioIcon" src="เปิดเสียง.png" alt="Toggle Sound">
+    </button>
+
+    <div class="scroll-container">
         <div class="game-world">
-             
-            <button class="audio-toggle-btn">🔊</button>
     
             <div class="main-menu-zone">
                 <div class="song-title">ดอกไม้ - Home <span style="font-size: 18px; font-weight: normal;">(Feat. Samatong)</span> ✿</div>
@@ -25,17 +36,22 @@
                     <button class="close-card-btn" onclick="closeMainMenu()">✕</button>
                     
                     <button class="menu-item" onclick="startPlantingMode()">
-                        <div class="icon-placeholder">🌱</div>
-                        <span>ปลูกดอกไม้</span>
-                    </button>
-                    <button class="menu-item">
-                        <div class="icon-placeholder">🎧</div>
-                        <span>ฟังเพลง</span>
-                    </button>
-                    <button class="menu-item">
-                        <div class="icon-placeholder">✨</div>
-                        <span>ติดตามศิลปิน</span>
-                    </button>
+                    <div class="icon-placeholder">
+                        <img src="เลือกดอกไม้2.png" alt="ปลูกดอกไม้" class="menu-icon">
+                    </div>
+                </button>
+
+                <button class="menu-item">
+                    <div class="icon-placeholder">
+                        <img src="ฟังเพลง.png" alt="ฟังเพลง" class="menu-icon">
+                    </div>
+                </button>
+
+                <button class="menu-item">
+                    <div class="icon-placeholder">
+                        <img src="ติดตาม.png" alt="ติดตามศิลปิน" class="menu-icon">
+                    </div>
+                </button>
                 </div>
             </div>
 
@@ -49,22 +65,25 @@
             </div>
 
             <div id="counterCard" class="counter-card" style="display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 20px;">
+                <button style="position: absolute; top: -10px; left: -10px; background: #f3706c; border: none; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: bold; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: transform 0.1s;" 
+                    onclick="closeCounter()"
+                    onmouseover="this.style.transform='scale(1.1)'" 
+                    onmouseout="this.style.transform='scale(1)'">✕</button>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span style="font-size: 14px; color: #4a4a4a; font-weight: 500;">คุณปลูกดอกไม้ ดอกที่...</span>
                     <div class="counter-images-group" style="display: flex; align-items: center; gap: 6px;">
-                        <img src="3.png" alt="Flower 3" style="width: 22px; height: 22px; object-fit: contain;">
-                        <img src="1.png" alt="Flower 1" style="width: 22px; height: 22px; object-fit: contain;">
-                        <img src="9.png" alt="Flower 9" style="width: 22px; height: 22px; object-fit: contain;">
-                        <img src="7.png" alt="Flower 7" style="width: 22px; height: 22px; object-fit: contain;">
+                        <img src="Icon ต้นโคลเวอร์.png" alt="Flower 11" style="width: 28px; height: 28px; object-fit: contain;">
+                        <img src="Icon เดซี่.png" alt="Flower 3" style="width: 28px; height: 28px; object-fit: contain;">
+                        <img src="Icon ทิวลิป.png" alt="Flower 2" style="width: 28px; height: 28px; object-fit: contain;">
+                        <img src="Icon ทานตะวัน.png" alt="Flower 1" style="width: 28px; height: 28px; object-fit: contain;">
                     </div>
                 </div>
-                <button style="background:none; border:none; color:#aaa; cursor:pointer; font-weight:bold; font-size: 14px; margin-left: 4px; padding: 0 2px;" onclick="closeCounter()">✕</button>
             </div>
 
             <div class="dirt-patch-zone"></div>
 
         </div>
     </div>
-
+    <audio id="bgMusic" src="FAH_Flower_BKT.mp3" preload="auto" loop hidden></audio>
 </body>
 </html>
