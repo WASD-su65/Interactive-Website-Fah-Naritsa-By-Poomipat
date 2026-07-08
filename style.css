@@ -10,7 +10,6 @@
            overflow: hidden;
            background-color: #f5eedc;
            font-family: 'Mali', cursive, sans-serif;
-           /* ใช้ Flexbox จัดให้กล่องเกมอยู่กึ่งกลางจอเสมอ */
            display: flex;
            justify-content: center;
            align-items: center;
