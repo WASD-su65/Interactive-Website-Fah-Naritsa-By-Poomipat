@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="web.js" defer></script>
+    <script src="web.js?v=15" defer></script>
 </head>
 <body>
     <div id="welcomeScreen" class="welcome-overlay-bg">
@@ -22,6 +22,12 @@
                 <img src="ปลูกดอกไม้.png" alt="ไปปลูกดอกไม้กันเลย" class="btn-image">
             </button>
         </div>
+    </div>
+
+    <div id="plantingHintToast" class="planting-hint-toast hidden">
+        <span class="hint-flower-left">🌸</span>
+        <span class="hint-text">คลิกตรงไหนก็ได้บนพื้นดินเพื่อปลูกดอกไม้</span>
+        <span class="hint-flower-right">🌱</span>
     </div>
 
     <button id="audioBtn" class="audio-toggle-btn hidden" onclick="toggleMusic()">
@@ -49,11 +55,11 @@
                         </div>
                     </button>
 
-                    <button class="menu-item">
+                    <a href="https://www.instagram.com/fahnaritsa" target="_blank" class="menu-item" style="text-decoration: none;">
                         <div class="icon-placeholder">
                             <img src="ติดตาม.png" alt="ติดตามศิลปิน" class="menu-icon">
                         </div>
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -66,13 +72,14 @@
                 </div>
             </div>
 
-            <div id="counterCard" class="counter-card" style="display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 20px;">
+            <div id="counterCard" class="counter-card hidden-counter" style="display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 20px;">
                 <button style="position: absolute; top: -10px; left: -10px; background: #f3706c; border: none; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: bold; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: transform 0.1s;" 
                     onclick="closeCounter()"
                     onmouseover="this.style.transform='scale(1.1)'" 
                     onmouseout="this.style.transform='scale(1)'">✕</button>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span style="font-size: 14px; color: #4a4a4a; font-weight: 500;">คุณปลูกดอกไม้ ดอกที่...</span>
+                    <span style="font-size: 14px; color: #4a4a4a; font-weight: 500;">คุณปลูกดอกไม้ ดอกที่</span>
+                    <span id="counterNumber" style="font-size: 20px; color: #f3706c; font-weight: 700; font-family: 'Mali', cursive; padding: 0 4px; text-shadow: 0 1px 2px rgba(255,255,255,0.6);">-</span>
                     <div class="counter-images-group" style="display: flex; align-items: center; gap: 6px;">
                         <img src="Icon ต้นโคลเวอร์.png" alt="Flower 11" style="width: 28px; height: 28px; object-fit: contain;">
                         <img src="Icon เดซี่.png" alt="Flower 3" style="width: 28px; height: 28px; object-fit: contain;">
@@ -105,57 +112,57 @@
             <p>ยินดีที่ได้รู้จักนะคะคุณ <span id="displayName"></span><br>วันนี้จะปลูกดอกไม้อะไรดีคะ ^^</p>
             
             <div class="flower-grid">
-                <div class="flower-card" onclick="selectFlower('forgot me not', '9.png')">
-                    <img src="9.png" alt="Flower">
+                <div class="flower-card" onclick="selectFlower('forgot me not', 'ความทรงจำ', '9.png', 'ดอกไม้ที่สื่อถึงความทรงจำอันงดงามที่ยังคงเบ่งบานแม้กาลเวลาจะผ่านไปเหมือนทุกช่วงเวลาที่มีเธอยังคงเป็นบ้านในหัวใจเสมอ')">
+                    <img src="10.png" alt="Flower">
                     <p>forgot me not</p>
                     <p>ความทรงจำ</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกเดซี่', '3.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกเดซี่', 'ความจริงใจ', '3.png', 'ดอกไม้ที่สื่อถึงความจริงใจและความบริสุทธิ์ความงดงามที่เริ่มต้นจากหัวใจที่ซื่อตรงเหมือนความรักของเราที่ค่อยๆเติบโตเป็นบ้าน')">
                     <img src="3.png" alt="Flower">
                     <p>ดอกเดซี่</p>
                     <p>ความจริงใจ</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกครอกัส', '5.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกครอกัส', 'การเริ่มต้น', '5.png', 'ดอกไม้ดอกแรกที่บานหลังฤดูหนาวเป็นสัญลักษณ์ของการเริ่มต้นครั้งใหม่เหมือนวันที่เราได้พบกันและเริ่มสร้างบ้านหลังเดียวกันในหัวใจ')">
                     <img src="5.png" alt="Flower">
                     <p>ดอกครอกัส</p>
                     <p>การเริ่มต้น</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกยิบโซ', '6.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกยิบโซ', 'การเคียงข้าง', '6.png', 'ดอกไม้ที่คอยเติมเต็มความงดงามให้ทุกช่อแม้ไม่ใช่ดอกที่โดดเด่นที่สุดเหมือนเธอที่อยู่เคียงข้างเสมอจนทุกวันธรรมดามีความหมาย')">
                     <img src="6.png" alt="Flower">
                     <p>ดอกยิบโซ</p>
                     <p>การเคียงข้าง</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกคอสมอส', '4.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกคอสมอส', 'ความสุขในทุกวัน', '4.png', 'ดอกไม้ที่เติบโตอย่างเรียบง่ายและเป็นธรรมชาติเตือนให้เห็นความสุขในเรื่องเล็กๆของชีวิตเหมือนทุกวันที่มีเธอที่ทำให้รอยยิ้มเกิดขึ้นได้เสมอ')">
                     <img src="4.png" alt="Flower">
                     <p>ดอกคอสมอส</p>
                     <p>ความสุขในทุกวัน</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกทานตะวัน', '1.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกทานตะวัน', 'หัวใจที่มั่นคง', '1.png', 'ดอกไม้ที่หันเข้าหาแสงอาทิตย์เสมอเป็นสัญลักษณ์ของความมั่นคงและซื่อสัตย์เหมือนหัวใจของฉันที่เลือกหันหาเธอในทุกวัน')">
                     <img src="1.png" alt="Flower">
                     <p>ดอกทานตะวัน</p>
                     <p>หัวใจที่มั่นคง</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกทิวลิป', '2.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกทิวลิป', 'ตกหลุ่มรัก', '2.png', 'ดอกไม้ที่เป็นสัญลักษณ์ของความรักอันสมบูรณ์ทุกความรักเริ่มต้นจากการเปิดหัวใจและวันนั้น...ฉันก็ได้พบเธอ....ผู้ที่ทำให้คำว่าบ้านมีความหมาย')">
                     <img src="2.png" alt="Flower">
                     <p>ดอกทิวลิป</p>
                     <p>ตกหลุ่มรัก</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกกุหลาบ', '7.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกกุหลาบ', 'หัวใจที่เลือกกัน', '7.png', 'ดอกไม้ที่แทนความรักอันลึกซึ้งและมั่นคงความงดงามเกิดขึ้นจากการดูแลกันเสมอเหมือนเราที่เลือกกันในทุกวันจนความรักกลายเป็นบ้าน')">
                     <img src="7.png" alt="Flower">
                     <p>ดอกกุหลาบ</p>
                     <p>หัวใจที่เลือกกัน</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกดาวเรือง', '8.png')">
+                <div class="flower-card" onclick="selectFlower('ดอกดาวเรือง', 'ความอบอุ่น', '8.png', 'ดอกไม้ที่เปรียบดังแสงแดดอ่อนๆมอบความอบอุ่นและความหวังให้ผู้คนเหมือนเธอที่อยู่ใกล้ๆทำให้ทุกการกลับมาช่างอบอุ่น')">
                     <img src="8.png" alt="Flower">
                     <p>ดอกดาวเรือง</p>
                     <p>ความอบอุ่น</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('ดอกลาเวนเดอร์', '6.png')">
-                    <img src="6.png" alt="Flower">
+                <div class="flower-card" onclick="selectFlower('ดอกลาเวนเดอร์', 'การเยียวยา', '6.png', 'ดอกไม้ที่มอบความสงบและปลอบโยนหัวใจ ช่วยเยียวยาในวันที่อ่อนล้าเหมือนการได้อยู่กับเธอที่ทำให้หัวใจได้พักและรู้สึกเหมือนอยู่บ้าน')">
+                    <img src="9.png" alt="Flower">
                     <p>ดอกลาเวนเดอร์</p>
                     <p>การเยียวยา</p>
                 </div>
-                <div class="flower-card" onclick="selectFlower('โคลเวอร์', '11.png')">
+                <div class="flower-card" onclick="selectFlower('โคลเวอร์', 'โชคดีที่มีเธอ', '11.png', 'โคลเวอร์สี่แฉกเป็นสัญลักษณ์ของความโชคดีที่ไม่ใช่ทุกคนจะได้พบเจอแต่โชคดีที่สุดของฉัน ... คือการได้พบเธอ')">
                     <img src="11.png" alt="Flower">
                     <p>โคลเวอร์</p>
                     <p>โชคดีที่มีเธอ</p>
@@ -165,19 +172,26 @@
     </div>
 
     <div id="plantingModal" class="overlay-modal hidden">
-        <div class="modal-content">
-            <p>ฝากข้อความน่ารักๆ<br>ไว้ที่ดอกไม้ดอกนี้ได้เลยนะคะ ✿</p>
+        <div class="card-modal-content">
             
-            <input type="text" id="messageInput" placeholder="คำอวยพร :">
+            <h3 id="modalFlowerName" class="card-main-title">ชื่อดอกไม้</h3>
+            <p id="modalFlowerMeaning" class="card-sub-title">ความหมาย</p>
             
-            <button class="go-plant-btn" onclick="confirmPlanting()">
-                ปลูกเลย!
-            </button>
-            <button class="go-plant-btn" onclick="closeModal()" style="margin-top: 10px; background-color: #ccc; color: #333;">
-                ยกเลิก
-            </button>
+            <div class="flower-icon-centered">
+                <img id="modalFlowerImg" src="" alt="Flower">
+            </div>
+            <div class="flower-input-right-zone">
+                    <p id="modalFlowerDetail" class="card-text-detail">รายละเอียดความหมายเพิ่มเติม...</p>
+            </div>
+            <p class="card-info">ฝากข้อความน่ารักๆ<br>ไว้ที่ดอกไม้ดอกนี้ได้เลยนะคะ ✿</p>
+            
+            <textarea id="messageInput" class="card-textarea" placeholder="คำอวยพร :" rows="4"></textarea>
+            
+            <div class="card-button-group">
+                <button class="btn-plant" onclick="confirmPlanting()">ปลูกเลย!</button>
+                <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+            </div>
         </div>
     </div>
-
 </body>
 </html>

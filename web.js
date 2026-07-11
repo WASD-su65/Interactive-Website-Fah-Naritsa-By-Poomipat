@@ -12,14 +12,31 @@ const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 const SHOW_DEBUG_ZONE = false; 
 const MIN_DISTANCE = 2.6;      
 
-const cx = 36.5; 
-const cy = 14.5; 
-const rx = 28.5; 
-const ry = 9.5;  
+const DIRT_POLYGON = [
+    { x: 12.53, y: 16.78 },
+    { x: 12.75, y: 15.02 },
+    { x: 17.79, y: 9.41 },
+    { x: 20.40, y: 7.98 },
+    { x: 31.14, y: 8.05 },
+    { x: 47.15, y: 5.63 },
+    { x: 54.01, y: 5.76 },
+    { x: 56.91, y: 6.68 },
+    { x: 60.18, y: 9.03 },
+    { x: 61.37, y: 13.00 },
+    { x: 61.19, y: 18.81 },
+    { x: 59.71, y: 22.79 },
+    { x: 49.11, y: 26.43 },
+    { x: 23.78, y: 25.78 },
+    { x: 17.87, y: 22.79 },
+    { x: 13.44, y: 19.20 }
+];
 
-const PAD_X = 1.8;
-const PAD_Y_TOP = 2.5;
-const PAD_Y_BOTTOM = 0.2;
+const DIRT_BOUNDS = {
+    minX: Math.min(...DIRT_POLYGON.map(p => p.x)),
+    maxX: Math.max(...DIRT_POLYGON.map(p => p.x)),
+    minY: Math.min(...DIRT_POLYGON.map(p => p.y)),
+    maxY: Math.max(...DIRT_POLYGON.map(p => p.y)),
+};
 
 const spawnedFlowers = [];
 const flowerAssets = [
@@ -31,8 +48,28 @@ const flowerAssets = [
 let tempX = 0;
 let tempY = 0;
 let currentUser = "";
-let selectedFlowerName = "";   // ชื่อดอกไม้ภาษาไทยที่ผู้ใช้เลือก เช่น "ดอกกุหลาบ"
-let selectedFlowerImg = "";    // ไฟล์รูปของดอกไม้ที่เลือก เช่น "7.png"
+let selectedFlowerName = "";
+let selectedFlowerMeaning = "";
+let selectedFlowerImg = "";
+let selectedFlowerDetail = "";
+
+async function updateFlowerPosition(id, x, y) {
+    if (id === undefined || id === null) {
+        console.warn("⚠️ ไม่มี id ของดอกไม้ เลยบันทึกตำแหน่งใหม่กลับเข้า database ไม่ได้ (จะสุ่มตำแหน่งใหม่ทุกครั้งที่โหลดหน้าแทน)");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from('flower')
+        .update({ x: x, y: y })
+        .eq('id', id);
+
+    if (error) {
+        console.error(`❌ บันทึกตำแหน่งใหม่ของดอกไม้ id ${id} ไม่สำเร็จ:`, error);
+    } else {
+        console.log(`✅ บันทึกตำแหน่งใหม่ของดอกไม้ id ${id} ลง database ถาวรแล้ว (x:${x}, y:${y})`);
+    }
+}
 
 async function loadFlowers() {
     const { data, error } = await supabaseClient.from('flower').select('*');
@@ -41,8 +78,20 @@ async function loadFlowers() {
         return;
     }
     data.forEach(item => {
-        spawnFlower(item.x, item.y, item.flower_id, item.nickname, item.message);
-        spawnedFlowers.push({ x: item.x, y: item.y }); 
+        let posX = Number(item.x);
+        let posY = Number(item.y);
+
+        if (isNaN(posX) || isNaN(posY) || !isInsideDirtEllipse(posX, posY)) {
+            const safePos = getRandomValidDirtPosition();
+            console.warn(`⚠️ ดอกไม้ id ${item.id ?? '(ไม่ทราบ)'} มีตำแหน่งหลุดนอกแปลงดิน (x:${item.x}, y:${item.y}, type: ${typeof item.x}) เลยสุ่มตำแหน่งใหม่ในแปลงดินให้แทน`);
+            posX = safePos.x;
+            posY = safePos.y;
+
+            updateFlowerPosition(item.id, posX, posY);
+        }
+
+        spawnFlower(posX, posY, item.flower_id, item.nickname, item.message);
+        spawnedFlowers.push({ x: posX, y: posY }); 
     });
 }
 
@@ -53,7 +102,7 @@ async function saveToDatabase(x, y, flower_id, nickname, message, flower_name = 
         x: x, 
         y: y, 
         flower_id: flower_id, 
-        flower_name: flower_name,   // ✅ ชื่อดอกไม้ภาษาไทยที่ผู้ใช้เลือก (ต้องมีคอลัมน์นี้ในตาราง Supabase)
+        flower_name: flower_name,
         nickname: nickname, 
         message: message,
         user_uuid: uuid
@@ -68,9 +117,54 @@ async function saveToDatabase(x, y, flower_id, nickname, message, flower_name = 
     if (error) {
         console.error("❌ บันทึกพลาด! สาเหตุ:", error);
         alert("บันทึกไม่สำเร็จ ลองดู Console (F12) นะครับ");
-    } else {
-        console.log("✅ บันทึกสำเร็จ!");
+        return false;
     }
+    console.log("✅ บันทึกสำเร็จ!");
+    return true;
+}
+
+async function showFlowerCounter() {
+    console.log("📊 กำลังนับจำนวนดอกไม้ทั้งหมด...");
+
+    let totalCount = null;
+
+    try {
+        const { count, error } = await supabaseClient
+            .from('flower')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) {
+            console.error("⚠️ นับจาก Supabase ไม่สำเร็จ - จะใช้จำนวนดอกไม้ในหน้าจอแทน:", error);
+        } else {
+            totalCount = count;
+            console.log(`📊 จำนวนดอกไม้ใน Supabase: ${count}`);
+        }
+    } catch (err) {
+        console.error("⚠️ เกิด exception ตอนนับ:", err);
+    }
+
+    if (totalCount === null || totalCount === undefined) {
+        totalCount = spawnedFlowers.length;
+        console.log(`📊 ใช้ fallback: spawnedFlowers.length = ${totalCount}`);
+    }
+
+    const counterCard = document.getElementById('counterCard');
+    const counterNumber = document.getElementById('counterNumber');
+
+    if (!counterCard) {
+        console.error("❌ ไม่พบ #counterCard ใน HTML");
+        return;
+    }
+    if (!counterNumber) {
+        console.error("❌ ไม่พบ #counterNumber ใน HTML");
+        return;
+    }
+
+    counterNumber.innerText = totalCount;
+    counterCard.classList.remove('hidden-counter');
+    counterCard.classList.remove('hidden');
+
+    console.log(`🎉 คุณเป็นคนปลูกดอกไม้ ดอกที่ ${totalCount} - แสดง counterCard แล้ว`);
 }
 
 function getUserIdentity() {
@@ -83,11 +177,30 @@ function getUserIdentity() {
 }
 
 function isInsideDirtEllipse(x, y) {
-    const dx = x - cx;
-    const dy = y - cy;
-    const safeRx = rx - PAD_X;
-    const safeRy = dy >= 0 ? (ry - PAD_Y_TOP) : (ry - PAD_Y_BOTTOM);
-    return (dx * dx) / (safeRx * safeRx) + (dy * dy) / (safeRy * safeRy) <= 1;
+    let inside = false;
+    for (let i = 0, j = DIRT_POLYGON.length - 1; i < DIRT_POLYGON.length; j = i++) {
+        const xi = DIRT_POLYGON[i].x, yi = DIRT_POLYGON[i].y;
+        const xj = DIRT_POLYGON[j].x, yj = DIRT_POLYGON[j].y;
+        const intersect = ((yi > y) !== (yj > y)) &&
+            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function getRandomValidDirtPosition(maxAttempts = 300) {
+    for (let attempts = 0; attempts < maxAttempts; attempts++) {
+        const x = DIRT_BOUNDS.minX + Math.random() * (DIRT_BOUNDS.maxX - DIRT_BOUNDS.minX);
+        const y = DIRT_BOUNDS.minY + Math.random() * (DIRT_BOUNDS.maxY - DIRT_BOUNDS.minY);
+
+        if (isInsideDirtEllipse(x, y) && !isTooCloseToOthers(x, y)) {
+            return { x, y };
+        }
+    }
+    return {
+        x: (DIRT_BOUNDS.minX + DIRT_BOUNDS.maxX) / 2,
+        y: (DIRT_BOUNDS.minY + DIRT_BOUNDS.maxY) / 2
+    };
 }
 
 function isTooCloseToOthers(x, y) {
@@ -131,34 +244,38 @@ function spawnFlower(xPercent, yPercent, imgName = null, nickname = "I", message
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    getUserIdentity(); // ✅ สร้าง/ดึง user_uuid ให้พร้อมใช้งานก่อนบันทึกข้อมูล
+    getUserIdentity();
     loadFlowers(); 
     
     const dirtPatchZone = document.querySelector('.dirt-patch-zone');
     if (dirtPatchZone) {
         if (SHOW_DEBUG_ZONE) {
-            const debugEllipse = document.createElement('div');
-            debugEllipse.style.position = 'absolute';
-            debugEllipse.style.left = `${cx - rx}%`;
-            debugEllipse.style.bottom = `${cy - ry}%`;
-            debugEllipse.style.width = `${rx * 2}%`;
-            debugEllipse.style.height = `${ry * 2}%`;
-            debugEllipse.style.border = '3px dashed red';
-            debugEllipse.style.borderRadius = '50%';
-            debugEllipse.style.pointerEvents = 'none'; 
-            debugEllipse.style.zIndex = '9999';
-            dirtPatchZone.appendChild(debugEllipse);
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('style', 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;');
+            svg.setAttribute('viewBox', '0 0 100 100');
+            svg.setAttribute('preserveAspectRatio', 'none');
+
+            const polygon = document.createElementNS(svgNS, 'polygon');
+            const pointsAttr = DIRT_POLYGON.map(p => `${p.x},${100 - p.y}`).join(' ');
+            polygon.setAttribute('fill', 'rgba(255,0,0,0.15)');
+            polygon.setAttribute('stroke', 'red');
+            polygon.setAttribute('stroke-width', '0.3');
+            polygon.setAttribute('vector-effect', 'non-scaling-stroke');
+
+            svg.appendChild(polygon);
+            dirtPatchZone.appendChild(svg);
         }
 
+        // ❌ ปิดการสุ่มดอกไม้ 120 ต้นตอนโหลดหน้า - แสดงเฉพาะดอกไม้จริงจาก Database เท่านั้น
+        // หากต้องการเปิดกลับ ให้ลบ /* ... */ ด้านล่างออก
+        /*
         let spawnedCount = 0;
         let attempts = 0;
         while (spawnedCount < 120 && attempts < 8000) {
             attempts++;
-            const angle = Math.random() * 2 * Math.PI;
-            const radius = Math.sqrt(Math.random());
-            
-            const initialX = cx + radius * rx * Math.cos(angle);
-            const initialY = cy + radius * ry * Math.sin(angle);
+            const initialX = DIRT_BOUNDS.minX + Math.random() * (DIRT_BOUNDS.maxX - DIRT_BOUNDS.minX);
+            const initialY = DIRT_BOUNDS.minY + Math.random() * (DIRT_BOUNDS.maxY - DIRT_BOUNDS.minY);
             
             if (isInsideDirtEllipse(initialX, initialY) && !isTooCloseToOthers(initialX, initialY)) {
                 spawnFlower(initialX, initialY);
@@ -166,8 +283,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 spawnedCount++;
             }
         }
+        */
 
-        dirtPatchZone.addEventListener('click', function(e) {
+        dirtPatchZone.addEventListener('click', async function(e) {
             if (!this.classList.contains('planting-active')) return;
             if (e.target.closest('.flower-item')) return; 
 
@@ -175,17 +293,43 @@ document.addEventListener("DOMContentLoaded", () => {
             const clickX = ((e.clientX - rect.left) / rect.width) * 100;
             const clickY = 100 - (((e.clientY - rect.top) / rect.height) * 100);
 
-            if (!isInsideDirtEllipse(clickX, clickY)) return;
-            if (isTooCloseToOthers(clickX, clickY)) return;
+            if (!isInsideDirtEllipse(clickX, clickY)) {
+                console.log('❌ คลิกนอกแปลงดิน');
+                return;
+            }
+            if (isTooCloseToOthers(clickX, clickY)) {
+                console.log('❌ คลิกใกล้ดอกไม้ต้นอื่นเกินไป');
+                return;
+            }
 
             tempX = clickX;
             tempY = clickY;
-            
-            const modal = document.getElementById('plantingModal');
-            if(modal) {
-                modal.classList.remove('hidden');
-            } else {
-                console.log("กรุณาเพิ่ม #plantingModal ใน HTML เพื่อใช้ระบบหน้าต่างปลูกดอกไม้");
+
+            const flowerImgToUse = selectedFlowerImg || flowerAssets[Math.floor(Math.random() * flowerAssets.length)];
+            const flowerNameToUse = selectedFlowerName || "";
+            const message = pendingMessage || "ส่งต่อความรัก ✿";
+
+            console.log(`🌸 ปลูกดอกไม้: x=${tempX.toFixed(2)}, y=${tempY.toFixed(2)}, flower=${flowerImgToUse}`);
+
+            spawnFlower(tempX, tempY, flowerImgToUse, currentUser, message);
+            const saveOk = await saveToDatabase(tempX, tempY, flowerImgToUse, currentUser, message, flowerNameToUse);
+            spawnedFlowers.push({ x: tempX, y: tempY });
+
+            this.classList.remove('planting-active');
+            const hintToast = document.getElementById('plantingHintToast');
+            if (hintToast) hintToast.classList.add('hidden');
+            pendingMessage = "";
+
+            const mainMenu = document.getElementById('mainMenu');
+            if (mainMenu) {
+                mainMenu.classList.remove('hidden');
+                mainMenu.classList.remove('fade-out');
+            }
+            const songTitle = document.querySelector('.song-title');
+            if (songTitle) songTitle.classList.remove('hidden');
+
+            if (saveOk) {
+                showFlowerCounter();
             }
         });
     }
@@ -203,7 +347,11 @@ function startPlantingMode() {
     if (nameModal) {
         nameModal.classList.remove('hidden');
     }
-    document.getElementById('counterCard').classList.add('hidden');
+    const counterCard = document.getElementById('counterCard');
+    if (counterCard) counterCard.classList.add('hidden-counter');
+
+    const songTitle = document.querySelector('.song-title');
+    if (songTitle) songTitle.classList.add('hidden');
 }
 
 function submitNameAndStart() {
@@ -214,55 +362,75 @@ function submitNameAndStart() {
         return;
     }
 
-    // ✅ เก็บชื่อผู้ใช้ไว้ในตัวแปร currentUser เพื่อใช้ตอนบันทึกลงฐานข้อมูล
     currentUser = nameInput.trim();
 
     document.getElementById('displayName').innerText = currentUser;
     document.getElementById('nameInputModal').classList.add('hidden');
     document.getElementById('flowerSelectionModal').classList.remove('hidden');
+
+    const songTitle = document.querySelector('.song-title');
+    if (songTitle) songTitle.classList.add('hidden');
 }
 
-function selectFlower(flowerName, flowerImg) {
-    console.log("เลือกดอกไม้: " + flowerName + " (" + flowerImg + ")");
-
-    // ✅ เก็บดอกไม้ที่เลือกไว้ใช้ตอนบันทึกลงฐานข้อมูล
+function selectFlower(flowerName, flowerMeaning, flowerImg, flowerDetail) {
     selectedFlowerName = flowerName;
+    selectedFlowerMeaning = flowerMeaning;
     selectedFlowerImg = flowerImg;
+    selectedFlowerDetail = flowerDetail;
+    
+    document.getElementById('modalFlowerName').innerText = selectedFlowerName;
+    document.getElementById('modalFlowerMeaning').innerText = selectedFlowerMeaning;
+    document.getElementById('modalFlowerImg').src = selectedFlowerImg;
+    document.getElementById('modalFlowerDetail').innerText = selectedFlowerDetail;
 
-    // ✅ ปิดหน้าต่างเลือกดอกไม้ แล้วเปิดโหมดปลูก (คลิกที่แปลงดินได้)
-    const flowerModal = document.getElementById('flowerSelectionModal');
-    if (flowerModal) flowerModal.classList.add('hidden');
+    const selectionModal = document.getElementById('flowerSelectionModal');
+    if (selectionModal) selectionModal.classList.add('hidden');
+
+    const plantModal = document.getElementById('plantingModal');
+    if (plantModal) plantModal.classList.remove('hidden');
+
+    const songTitle = document.querySelector('.song-title');
+    if (songTitle) songTitle.classList.add('hidden');
+}
+
+let pendingMessage = "";
+
+function confirmPlanting() {
+    const msgInput = document.getElementById('messageInput');
+    pendingMessage = (msgInput && msgInput.value) ? msgInput.value : "ส่งต่อความรัก ✿";
+
+    console.log(`🌸 พร้อมปลูกแล้ว: flower=${selectedFlowerImg}, msg=${pendingMessage} - รอคลิกที่พื้นดิน`);
+
+    const plantModal = document.getElementById('plantingModal');
+    if (plantModal) plantModal.classList.add('hidden');
 
     const dirtPatch = document.querySelector('.dirt-patch-zone');
     if (dirtPatch) dirtPatch.classList.add('planting-active');
 
-    // แสดงการ์ดแนะนำ "ปลูกดอกไม้" (ถ้ามี) เพื่อบอกผู้ใช้ให้ไปคลิกที่แปลงดิน
-    const plantingIntro = document.getElementById('plantingIntroCard');
-    if (plantingIntro) plantingIntro.classList.remove('card-hidden');
+    const hintToast = document.getElementById('plantingHintToast');
+    if (hintToast) hintToast.classList.remove('hidden');
 }
 
-function confirmPlanting() {
-    const msgInput = document.getElementById('messageInput');
-    const message = (msgInput && msgInput.value) ? msgInput.value : "ส่งต่อความรัก ✿";
-
-    // ✅ ใช้ดอกไม้ที่ผู้ใช้เลือกจริงๆ ถ้ายังไม่ได้เลือก (เผื่อ flow ยังไม่ครบ) ให้สุ่มสำรองไว้ก่อน
-    const flowerImgToUse = selectedFlowerImg || flowerAssets[Math.floor(Math.random() * flowerAssets.length)];
-    const flowerNameToUse = selectedFlowerName || "";
-
-    spawnFlower(tempX, tempY, flowerImgToUse, currentUser, message);
-
-    saveToDatabase(tempX, tempY, flowerImgToUse, currentUser, message, flowerNameToUse);
-    spawnedFlowers.push({ x: tempX, y: tempY });
+function closeModal(backToSelection = true) {
+    const plantModal = document.getElementById('plantingModal');
+    if (plantModal) {
+        plantModal.classList.add('hidden');
+    }
     
-    closeModal();
-}
-
-function closeModal() {
-    const modal = document.getElementById('plantingModal');
-    if (modal) modal.classList.add('hidden');
+    if (backToSelection) {
+        const selectionModal = document.getElementById('flowerSelectionModal');
+        if (selectionModal) {
+            selectionModal.classList.remove('hidden');
+        }
+    }
     
     const msgInput = document.getElementById('messageInput');
-    if (msgInput) msgInput.value = "";
+    if (msgInput) {
+        msgInput.value = "";
+    }
+
+    const songTitle = document.querySelector('.song-title');
+    if (songTitle) songTitle.classList.add('hidden');
 }
 
 function closeMainMenu() {
@@ -299,6 +467,10 @@ function backToMainMenu() {
     }
     
     if (dirtPatch) dirtPatch.classList.remove('planting-active');
+
+    const hintToast = document.getElementById('plantingHintToast');
+    if (hintToast) hintToast.classList.add('hidden');
+    pendingMessage = "";
 }
 
 function toggleMusic() {
