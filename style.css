@@ -1008,7 +1008,15 @@
     .album-entry { gap: 5px; }
     .album-entry-img { width: clamp(18px, 3.5vw, 26px); }
     .album-entry-text { font-size: 8px; gap: 0; line-height: 1.35; }
-    .album-entry-line { gap: 3px; }
+    .album-entry-line {
+        gap: 3px;
+        display: flex;         /* ✅ ให้บังคับความกว้างตาม parent - ไม่ล้นออกนอกกรอบ */
+        width: 100%;
+    }
+    .album-entry-value {
+        flex: 1;               /* ✅ ยืดเต็มบรรทัด + overflow: hidden + ellipsis ตัดข้อความยาว */
+        min-width: 0;
+    }
     .album-page { padding: 0.5% 1.5%; top: 8%; bottom: 11%; }
     .album-entry-list { gap: 1%; }
 }
